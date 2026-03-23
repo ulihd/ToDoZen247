@@ -51,6 +51,13 @@
     .progress-wrap { margin-top:10px; height:4px; border-radius:2px; background:var(--border); overflow:hidden; }
     .progress-fill { height:100%; border-radius:2px; background:var(--green); transition:width 0.4s ease; }
 
+    /* COPY TASKS BANNER — shown when viewing a non-today day that has tasks */
+    #copy-banner { display:none; margin:12px 14px 0; background:rgba(0,122,255,0.08); border:0.5px solid rgba(0,122,255,0.25); border-radius:12px; padding:11px 14px; flex-shrink:0; }
+    #copy-banner.visible { display:flex; align-items:center; gap:10px; }
+    .copy-banner-text { flex:1; font-size:14px; color:var(--blue); font-weight:500; }
+    .copy-banner-btn { background:var(--blue); color:#fff; border:none; border-radius:9px; padding:7px 14px; font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+    .copy-banner-btn:active { opacity:0.8; }
+
     /* SCROLL */
     #scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 14px 0; }
 
@@ -114,6 +121,41 @@
     /* DRAG GHOST */
     #drag-ghost { position:fixed; pointer-events:none; z-index:9999; border-radius:14px; box-shadow:0 12px 32px rgba(0,0,0,0.22); transform:scale(1.04); opacity:0.96; transition:none !important; }
 
+    /* COPY BOTTOM SHEET */
+    #sheet-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:200; opacity:0; transition:opacity 0.25s; pointer-events:none; }
+    #sheet-backdrop.open { opacity:1; pointer-events:auto; }
+    #copy-sheet {
+      position:fixed; bottom:0; left:50%; transform:translateX(-50%) translateY(102%);
+      width:100%; max-width:768px; background:var(--surface);
+      border-radius:20px 20px 0 0; z-index:201;
+      transition:transform 0.32s cubic-bezier(0.32,0.72,0,1);
+      padding-bottom:calc(var(--safe-bottom) + 6px);
+    }
+    #copy-sheet.open { transform:translateX(-50%) translateY(0); }
+    .sheet-handle { width:36px; height:4px; border-radius:2px; background:var(--border2); margin:10px auto 0; }
+    .sheet-header { padding:14px 20px 0; }
+    .sheet-title { font-size:17px; font-weight:700; }
+    .sheet-subtitle { font-size:13px; color:var(--text2); margin-top:3px; }
+    .sheet-row-header { display:flex; align-items:center; justify-content:space-between; padding:14px 20px 6px; border-top:0.5px solid var(--border); margin-top:12px; }
+    .sheet-row-label { font-size:12px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:0.7px; }
+    .sheet-select-all { font-size:14px; color:var(--blue); background:none; border:none; font-family:inherit; cursor:pointer; padding:2px 0; font-weight:500; }
+    .sheet-tasks { max-height:36vh; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 16px 8px; }
+    .sheet-task-item { display:flex; align-items:center; gap:12px; padding:12px 4px; border-bottom:0.5px solid var(--border); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+    .sheet-task-item:last-child { border-bottom:none; }
+    .sheet-check { width:24px; height:24px; border-radius:50%; border:2px solid var(--border2); display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.15s; }
+    .sheet-check.on { background:var(--blue); border-color:var(--blue); }
+    .sheet-check svg { display:block; }
+    .sheet-item-text { font-size:15px; flex:1; line-height:1.3; }
+    .sheet-item-text.done-text { color:var(--text3); text-decoration:line-through; }
+    .sheet-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:12px 16px 4px; border-top:0.5px solid var(--border); margin-top:4px; }
+    .sheet-btn { height:52px; border-radius:14px; border:none; font-size:16px; font-weight:600; font-family:inherit; cursor:pointer; transition:transform 0.1s,opacity 0.15s; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; }
+    .sheet-btn:active { transform:scale(0.97); }
+    .sheet-btn:disabled { opacity:0.3; cursor:default; }
+    .sheet-btn .btn-label { font-size:15px; font-weight:700; }
+    .sheet-btn .btn-sub { font-size:11px; font-weight:400; opacity:0.8; }
+    .sheet-btn.to-today { background:var(--blue); color:#fff; }
+    .sheet-btn.to-tomorrow { background:var(--surface2); color:var(--blue); border:0.5px solid rgba(0,122,255,0.3); }
+
     @keyframes fadeUp { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
     .task-wrap { animation:fadeUp 0.18s ease; }
     @media (min-width:600px) { #app{border-left:0.5px solid var(--border);border-right:0.5px solid var(--border);} .header-title{font-size:32px;} }
@@ -155,6 +197,12 @@
     </div>
   </div>
 
+  <!-- Copy tasks banner shown when viewing another day with tasks -->
+  <div id="copy-banner">
+    <span class="copy-banner-text" id="copy-banner-text"></span>
+    <button class="copy-banner-btn" id="copy-banner-btn">Copy tasks</button>
+  </div>
+
   <div id="scroll"></div>
 
   <div id="input-bar">
@@ -164,6 +212,31 @@
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3V15M3 9H15" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>
       </button>
     </div>
+  </div>
+</div>
+
+<!-- Copy sheet -->
+<div id="sheet-backdrop"></div>
+<div id="copy-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <div class="sheet-title" id="sheet-title">Copy tasks</div>
+    <div class="sheet-subtitle" id="sheet-subtitle"></div>
+  </div>
+  <div class="sheet-row-header">
+    <span class="sheet-row-label">Select tasks</span>
+    <button class="sheet-select-all" id="sheet-select-all">Select all</button>
+  </div>
+  <div class="sheet-tasks" id="sheet-tasks"></div>
+  <div class="sheet-actions">
+    <button class="sheet-btn to-today" id="sheet-btn-today" disabled>
+      <span class="btn-label">Add to Today</span>
+      <span class="btn-sub" id="sheet-today-sub"></span>
+    </button>
+    <button class="sheet-btn to-tomorrow" id="sheet-btn-tomorrow" disabled>
+      <span class="btn-label">Add to Tomorrow</span>
+      <span class="btn-sub" id="sheet-tomorrow-sub"></span>
+    </button>
   </div>
 </div>
 
@@ -178,6 +251,7 @@ function fmtKey(d) {
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 function todayKey() { return fmtKey(new Date()); }
+function tomorrowKey() { return offsetKey(todayKey(), 1); }
 
 function offsetKey(key, days) {
   const d = new Date(key+'T12:00:00');
@@ -220,8 +294,7 @@ function relativeLabel(key) {
   if (key === offsetKey(today,-1)) return 'Yesterday';
   if (key === offsetKey(today,1)) return 'Tomorrow';
   const diff = Math.round((new Date(key+'T12:00:00') - new Date(today+'T12:00:00')) / 86400000);
-  if (diff > 1 && diff <= 6) return new Date(key+'T12:00:00').toLocaleDateString('en-AU',{weekday:'long'});
-  if (diff < -1 && diff >= -6) return new Date(key+'T12:00:00').toLocaleDateString('en-AU',{weekday:'long'});
+  if (Math.abs(diff) <= 6) return new Date(key+'T12:00:00').toLocaleDateString('en-AU',{weekday:'long'});
   return '';
 }
 
@@ -244,6 +317,20 @@ function renderHeader() {
   else pw.style.display='none';
 
   document.getElementById('cal-btn').className = 'icon-btn'+(showCal?' active':'');
+
+  // Copy banner: show when viewing another day (not today/tomorrow) that has tasks
+  const banner = document.getElementById('copy-banner');
+  const isOtherDay = viewKey !== today;
+  const hasTasks = tasks.length > 0;
+  if (isOtherDay && hasTasks && !showCal) {
+    banner.className = 'visible';
+    const fromLabel = viewKey === offsetKey(today,-1) ? 'Yesterday' :
+      viewKey === tomorrowKey() ? 'Tomorrow' :
+      d.toLocaleDateString('en-AU',{month:'short',day:'numeric'});
+    document.getElementById('copy-banner-text').textContent = `Add tasks from ${fromLabel} to another day`;
+  } else {
+    banner.className = '';
+  }
 }
 
 // ── CALENDAR ──────────────────────────────────────────────────────────────────
@@ -329,26 +416,160 @@ function render() {
   }
 }
 
+// ── COPY SHEET ────────────────────────────────────────────────────────────────
+let selectedIds = new Set();
+
+function openCopySheet() {
+  const tasks = getTasks();
+  const today = todayKey();
+  const tomorrow = tomorrowKey();
+  const fromDate = new Date(viewKey+'T12:00:00');
+  const fromLabel = viewKey === offsetKey(today,-1) ? 'Yesterday' :
+    viewKey === tomorrow ? 'Tomorrow' :
+    fromDate.toLocaleDateString('en-AU',{weekday:'long', month:'short', day:'numeric'});
+
+  document.getElementById('sheet-title').textContent = `Copy from ${fromLabel}`;
+  document.getElementById('sheet-subtitle').textContent = 'Choose tasks to add to today or tomorrow';
+
+  // Today/tomorrow button sublabels
+  document.getElementById('sheet-today-sub').textContent = new Date(today+'T12:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
+  document.getElementById('sheet-tomorrow-sub').textContent = new Date(tomorrow+'T12:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
+
+  // Pre-select all incomplete tasks
+  selectedIds = new Set(tasks.filter(t=>!t.done).map(t=>t.id));
+
+  renderSheetTasks(tasks);
+  updateSheetButtons();
+
+  document.getElementById('sheet-backdrop').classList.add('open');
+  document.getElementById('copy-sheet').classList.add('open');
+}
+
+function renderSheetTasks(tasks) {
+  const html = tasks.map(task=>`
+    <div class="sheet-task-item" data-sid="${task.id}">
+      <div class="sheet-check${selectedIds.has(task.id)?' on':''}" data-scheck="${task.id}">
+        ${selectedIds.has(task.id)?`<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`:''}
+      </div>
+      <span class="sheet-item-text${task.done?' done-text':''}">${esc(task.text)}</span>
+    </div>
+  `).join('');
+  document.getElementById('sheet-tasks').innerHTML = html;
+
+  document.querySelectorAll('[data-sid]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const id = el.dataset.sid;
+      if(selectedIds.has(id)) selectedIds.delete(id);
+      else selectedIds.add(id);
+      const tasks = getTasks();
+      renderSheetTasks(tasks);
+      updateSheetButtons();
+    });
+  });
+
+  // Select all toggle
+  const tasks2 = getTasks();
+  const allSelected = tasks2.every(t=>selectedIds.has(t.id));
+  document.getElementById('sheet-select-all').textContent = allSelected ? 'Deselect all' : 'Select all';
+}
+
+function updateSheetButtons() {
+  const hasSelection = selectedIds.size > 0;
+  const today = todayKey();
+  const tomorrow = tomorrowKey();
+
+  const todayBtn = document.getElementById('sheet-btn-today');
+  const tomBtn = document.getElementById('sheet-btn-tomorrow');
+
+  // Disable if viewing today/tomorrow and trying to copy to same day
+  todayBtn.disabled = !hasSelection || viewKey === today;
+  tomBtn.disabled = !hasSelection || viewKey === tomorrow;
+
+  if (viewKey === today) {
+    todayBtn.title = "You're already viewing today";
+  }
+  if (viewKey === tomorrow) {
+    tomBtn.title = "You're already viewing tomorrow";
+  }
+}
+
+function closeCopySheet() {
+  document.getElementById('sheet-backdrop').classList.remove('open');
+  document.getElementById('copy-sheet').classList.remove('open');
+}
+
+function copyTasksTo(destKey) {
+  const tasks = getTasks();
+  const selected = tasks.filter(t=>selectedIds.has(t.id));
+  if(!selected.length) return;
+
+  const existing = state.days[destKey] || [];
+  const existingTexts = new Set(existing.map(t=>t.text));
+  const toAdd = selected.filter(t=>!existingTexts.has(t.text)).map(t=>({id:uid(),text:t.text,done:false}));
+
+  if(toAdd.length) {
+    state.days[destKey] = [...existing, ...toAdd];
+    save(state);
+  }
+
+  closeCopySheet();
+
+  // Show brief confirmation then navigate to dest
+  const destLabel = destKey === todayKey() ? 'Today' : 'Tomorrow';
+  const count = toAdd.length;
+  const skipped = selected.length - toAdd.length;
+
+  // Navigate to the destination day
+  viewKey = destKey;
+  const d = new Date(destKey+'T12:00:00');
+  calYear = d.getFullYear(); calMonth = d.getMonth();
+  render();
+
+  // Show a brief toast
+  showToast(`${count} task${count!==1?'s':''} added to ${destLabel}${skipped?' ('+skipped+' already existed)':''}`);
+}
+
+function showToast(msg) {
+  const existing = document.getElementById('toast');
+  if(existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.id = 'toast';
+  toast.textContent = msg;
+  toast.style.cssText = `position:fixed;bottom:calc(var(--safe-bottom,0px) + 90px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.82);color:#fff;padding:10px 18px;border-radius:20px;font-size:14px;font-weight:500;z-index:300;white-space:nowrap;max-width:90vw;text-overflow:ellipsis;overflow:hidden;animation:fadeUp 0.2s ease;pointer-events:none;`;
+  document.body.appendChild(toast);
+  setTimeout(()=>{ toast.style.opacity='0'; toast.style.transition='opacity 0.3s'; setTimeout(()=>toast.remove(),300); }, 2500);
+}
+
+// Sheet button events
+document.getElementById('sheet-btn-today').addEventListener('click',()=>copyTasksTo(todayKey()));
+document.getElementById('sheet-btn-tomorrow').addEventListener('click',()=>copyTasksTo(tomorrowKey()));
+document.getElementById('sheet-backdrop').addEventListener('click', closeCopySheet);
+document.getElementById('sheet-select-all').addEventListener('click',()=>{
+  const tasks = getTasks();
+  const allSelected = tasks.every(t=>selectedIds.has(t.id));
+  if(allSelected) selectedIds.clear();
+  else tasks.forEach(t=>selectedIds.add(t.id));
+  renderSheetTasks(tasks);
+  updateSheetButtons();
+});
+document.getElementById('copy-banner-btn').addEventListener('click', openCopySheet);
+
 // ── EVENTS ────────────────────────────────────────────────────────────────────
-// Touch drag state
 let drag={active:false,id:null,srcEl:null,ghost:null,startY:0,curY:0};
 
 function attachEvents(){
   const scroll=document.getElementById('scroll');
 
-  // Toggle
   scroll.querySelectorAll('[data-toggle]').forEach(el=>{
     el.addEventListener('click',()=>{
       setTasks(getTasks().map(t=>t.id===el.dataset.toggle?{...t,done:!t.done}:t));
     });
   });
 
-  // Delete
   scroll.querySelectorAll('[data-del]').forEach(el=>{
     el.addEventListener('click',()=>setTasks(getTasks().filter(t=>t.id!==el.dataset.del)));
   });
 
-  // Swipe-to-delete
   scroll.querySelectorAll('.task-wrap').forEach(wrap=>{
     const row=wrap.querySelector('.task-row');
     let sx,sy,swiping=false;
@@ -371,28 +592,22 @@ function attachEvents(){
     },{passive:true});
   });
 
-  // Touch drag-to-reorder via handle
   scroll.querySelectorAll('[data-handle]').forEach(handle=>{
     handle.addEventListener('touchstart',e=>{
       e.stopPropagation();
       const wrap=handle.closest('.task-wrap');
       if(!wrap) return;
       if(navigator.vibrate) navigator.vibrate(8);
-
-      // Build ghost
       const rect=wrap.getBoundingClientRect();
       const ghost=wrap.cloneNode(true);
       ghost.id='drag-ghost';
       ghost.style.cssText=`position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;pointer-events:none;z-index:9999;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,0.22);transform:scale(1.04);opacity:0.97;`;
       document.body.appendChild(ghost);
-
       wrap.querySelector('.task-row').classList.add('drag-placeholder');
-
       drag={active:true,id:wrap.dataset.id,srcEl:wrap,ghost,startY:e.touches[0].clientY,curY:e.touches[0].clientY};
     },{passive:true});
   });
 
-  // Desktop drag
   scroll.querySelectorAll('.task-wrap').forEach(wrap=>{
     wrap.setAttribute('draggable','true');
     wrap.addEventListener('dragstart',e=>{
@@ -416,13 +631,10 @@ function reorder(fromId, toId){
   const tasks=getTasks();
   const fi=tasks.findIndex(t=>t.id===fromId), ti=tasks.findIndex(t=>t.id===toId);
   if(fi<0||ti<0) return;
-  const arr=[...tasks];
-  const [item]=arr.splice(fi,1);
-  arr.splice(ti,0,item);
+  const arr=[...tasks]; const [item]=arr.splice(fi,1); arr.splice(ti,0,item);
   setTasks(arr);
 }
 
-// Global touch move/end for drag
 document.addEventListener('touchmove',e=>{
   if(!drag.active||!drag.ghost) return;
   e.preventDefault();
@@ -430,8 +642,6 @@ document.addEventListener('touchmove',e=>{
   drag.curY=y;
   const rect=drag.srcEl.getBoundingClientRect();
   drag.ghost.style.top=(rect.top+(y-drag.startY))+'px';
-
-  // Highlight target
   const scroll=document.getElementById('scroll');
   scroll.querySelectorAll('.task-wrap').forEach(w=>{
     if(w===drag.srcEl) return;
@@ -445,23 +655,18 @@ document.addEventListener('touchend',e=>{
   if(!drag.active) return;
   if(drag.ghost){drag.ghost.remove();drag.ghost=null;}
   if(drag.srcEl) drag.srcEl.querySelector('.task-row').classList.remove('drag-placeholder');
-
   const scroll=document.getElementById('scroll');
   const wraps=Array.from(scroll.querySelectorAll('.task-wrap'));
   wraps.forEach(w=>{const r=w.querySelector('.task-row');if(r)r.style.borderColor='';});
-
   const y=drag.curY;
   const target=wraps.find(w=>{
     if(w===drag.srcEl) return false;
     const r=w.getBoundingClientRect();
     return y>=r.top&&y<=r.bottom;
   });
-
   const fromId=drag.id;
   drag={active:false,id:null,srcEl:null,ghost:null,startY:0,curY:0};
-
-  if(target) { reorder(fromId, target.dataset.id); }
-  else render();
+  if(target){ reorder(fromId, target.dataset.id); } else render();
 },{passive:true});
 
 // ── INPUT ─────────────────────────────────────────────────────────────────────
